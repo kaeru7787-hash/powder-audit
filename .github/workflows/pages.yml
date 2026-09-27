@@ -12,20 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pages: read
     steps:
       - uses: actions/checkout@v4
-      - name: Import delivered source package on first run
-        if: hashFiles('powder-audit-source.zip') != ''
-        run: |
-          echo 'b56397e3a9df7d7c82cbd0549887cc08aa234f247044378b9893849c2d70864d  powder-audit-source.zip' | sha256sum --check
-          unzip -q powder-audit-source.zip -x 'powder-audit/.github/workflows/*' -d /tmp/powder-source
-          cp -a /tmp/powder-source/powder-audit/. .
-          git rm powder-audit-source.zip
-          git add .
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Import complete powder audit v0.2.0 source and tests'
-          git push origin HEAD:main
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
