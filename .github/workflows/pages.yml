@@ -12,10 +12,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pages: read
     steps:
       - uses: actions/checkout@v4
+      - name: Apply verified v0.2.1 source update
+        if: hashFiles('powder-audit-source.zip') != ''
+        run: |
+          echo '9e9769d0fd93c2160d2e26a45d0dbb6a9b46432d605660a26bcc65db893bded8  powder-audit-source.zip' | sha256sum --check
+          unzip -q powder-audit-source.zip -x 'powder-audit/.github/workflows/*' -d /tmp/powder-update
+          git rm --ignore-unmatch public/data/demo-master.json public/data/demo-prescription.json public/data/demo-jahis.txt public/data/TEST000001.png
+          cp -a /tmp/powder-update/powder-audit/. .
+          git rm powder-audit-source.zip
+          git add .
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fit barcode camera to frame, remove demo prescriptions and add source link'
+          git push origin HEAD:main
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
