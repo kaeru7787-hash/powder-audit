@@ -1,0 +1,23 @@
+{
+  "name": "pictokun-powder-audit",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "dev": "node scripts/assets.mjs && vite --configLoader runner --host 127.0.0.1",
+    "build": "tsc --noEmit && node scripts/assets.mjs && vite build --configLoader runner && node scripts/sw.mjs",
+    "preview": "vite preview --configLoader runner --host 127.0.0.1",
+    "test": "node scripts/test.mjs"
+  },
+  "dependencies": {
+    "tesseract.js": "6.0.1",
+    "zxing-wasm": "2.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.5.2",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vite": "7.1.7"
+  }
+}
