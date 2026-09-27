@@ -18,6 +18,13 @@ export function load(): Store {
       (data.current && data.current.schema !== 1)
     )
       throw new Error();
+    // Retire legacy practice sessions without discarding their audit history.
+    if (data.current?.demo) {
+      data.current.endedAt ||= new Date().toISOString();
+      data.current.pendingScan = null;
+      data.archived.push(data.current);
+      data.current = null;
+    }
     return data;
   } catch {
     throw new AuditError(

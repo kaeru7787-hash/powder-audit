@@ -1,7 +1,6 @@
 import "./style.css";
 import {
   AuditError,
-  type Drug,
   type Permit,
   type PrescriptionDrug,
   type Session,
@@ -26,8 +25,7 @@ import { load, save, storageKey, type Store } from "./storage";
 import { Camera, decode, imageCanvas } from "./camera";
 import { recognizeWeight } from "./ocr";
 import { sound, unlockAudio } from "./sound";
-import { openQR, openPaper, reviewDrafts } from "./prescription-ui";
-import { parseJahis } from "./prescription";
+import { openQR, openPaper } from "./prescription-ui";
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
 const esc = (v: unknown) =>
@@ -65,7 +63,6 @@ const symbols: Record<Status, string> = {
 let store: Store,
   selected = "",
   permit: Permit | null = null,
-  demoMaster: Drug[] = [],
   camera: Camera | null = null,
   dialogEpoch = 0,
   transactionBusy = false;
@@ -82,7 +79,7 @@ try {
 const app = $("#app");
 const session = () => store.current!;
 const drug = () => session()?.drugs.find((d) => d.id === selected);
-const master = () => (session()?.demo ? demoMaster : store.master);
+const master = () => store.master;
 const badge = (status: Status) =>
   `<span class="pill ${status}">${symbols[status]} ${labels[status]}</span>`;
 function message(e: unknown) {
@@ -134,7 +131,7 @@ function render() {
     state = s && d ? weighState(s, d) : null,
     complete = s && allPassed(s);
   app.innerHTML = `<header class="app-header"><img class="pictokun" src="./pictokun.png" alt="ピクト君"><div class="brand"><h1>散剤監査</h1><button class="guide-button" id="guide">使い方を見る ↗</button></div><span class="local">● 端末内で解析</span></header><main><div id="message" role="alert" class="notice error">${esc(notice)}</div>
- ${s ? `<div class="row between" style="margin-bottom:18px"><div><h2>本日の監査</h2><span class="muted">${new Date(s.startedAt).toLocaleDateString("ja-JP")} ・ 散剤 ${drugs.length}剤</span></div><span class="pill ${s.demo ? "low" : ""}">${s.demo ? "TEST・架空薬で練習中" : "処方確認済み"}</span></div>` : `<section class="card card-body intro"><div><h2>処方を確認して、監査をはじめる</h2><p class="muted">薬剤確認から秤量まで、1回ずつ確実に。</p></div><div class="actions"><button class="primary" id="demo" ${fatal ? "disabled" : ""}>テスト処方で試す</button><button id="import" ${fatal ? "disabled" : ""}>処方を取り込む</button></div></section>`}
+ ${s ? `<div class="row between" style="margin-bottom:18px"><div><h2>本日の監査</h2><span class="muted">${new Date(s.startedAt).toLocaleDateString("ja-JP")} ・ 散剤 ${drugs.length}剤</span></div><span class="pill">処方確認済み</span></div>` : `<section class="card card-body intro"><div><h2>処方を確認して、監査をはじめる</h2><p class="muted">薬剤確認から秤量まで、1回ずつ確実に。</p></div><div class="actions"><button class="primary" id="import" ${fatal ? "disabled" : ""}>処方を取り込む</button></div></section>`}
  <ol class="steps"><li class="${!s ? "active" : ""}"><span class="step-num">1</span>処方を確認</li><li class="${s && !permit ? "active" : ""}"><span class="step-num">2</span>GS1を読む</li><li class="${permit ? "active" : ""}"><span class="step-num">3</span>重量を確認</li><li><span class="step-num">4</span>登録・合算</li></ol>
  ${complete ? `<div class="completion" role="status"><img src="./pictokun.png" alt="ピクト君・監査完了"><div><h2>✓ 全薬剤の監査が完了しました</h2><span>薬剤師による最終確認を行ってください。</span></div></div>` : ""}
  <div class="workspace"><div class="stack">${
@@ -142,7 +139,7 @@ function render() {
      ? `<section class="card"><div class="panel-heading"><span>Rp.${esc(d.rpNumber)} ${d.prescriptionType === "generic" ? "・一般名処方" : ""}</span>${badge(state.status)}</div><div class="card-body"><h2>${esc(d.drugName)}</h2><div class="muted">${esc(d.strength)} / ${esc(d.dosageForm)} / 製剤量</div><div class="metrics"><div><div class="metric-label">現在の合計</div><div class="large-number" id="current-total">${fmt(state.current)}<span class="unit">g</span></div></div><div><div class="metric-label">処方総量</div><div class="target-number">${fmt(d.expectedTotal)}<span class="unit">g</span></div><div class="muted">${d.quantityPerDay && d.days ? `${fmt(d.quantityPerDay)} g / 日 × ${d.days}日` : esc(d.usage || "総量を確認済み")}</div></div></div><div class="progress ${state.status}"><span style="width:${Math.min(100, (state.current / d.expectedTotal) * 100)}%"></span></div><div class="row between muted"><span>合格範囲 ${fmt(state.lower)} ～ ${fmt(state.upper)} g</span><span>±10%</span></div>
  <div class="helper"><img src="./pictokun.png" alt="ピクト君・${labels[state.status]}"><p>${state.status === "over" ? "<strong>！ 上限を超えています。</strong><br>天秤・登録値を確認してください。" : state.status === "pass" ? `<strong>✓ 合格範囲に入りました。</strong><br>差 ${state.difference >= 0 ? "+" : ""}${fmt(state.difference)} g（${state.percent >= 0 ? "+" : ""}${state.percent.toFixed(2)}%）` : `<strong>${permit ? "✓ 薬剤一致。天秤の重量を確認しましょう。" : "瓶のGS1を、秤量のたびに確認しましょう。"}</strong><br>残り目安 ${fmt(state.remaining)} g`}</p></div>
  ${permit ? `<div class="notice">✓ 薬剤一致：${esc(permit.product.productName)}<br><span class="code">${esc(permit.product.gtin)}</span></div><div class="actions" style="margin-top:14px"><button class="primary" id="camera-weight">天秤を撮影</button><button id="manual-weight">重量を手入力</button></div><button id="cancel-permit" class="text-button full">この秤量を中止（GS1からやり直す）</button>` : `<button class="primary full" id="scan" ${s.block || fatal ? "disabled" : ""}>▣ GS1を読む</button><p class="muted" style="text-align:center;margin:8px 0 0">重量の追加には毎回GS1確認が必要です</p>`}</div></section><section class="card"><div class="panel-heading"><h2>秤量履歴</h2><span class="muted">${s.weights.filter((w) => w.drugId === d.id && !w.deleted).length}回</span></div><div class="card-body">${historyHTML(s, d)}<button id="all-history" class="text-button">監査ログをすべて見る ↗</button></div></section>`
-     : `<section class="card"><div class="panel-heading"><h2>本日の監査</h2><span class="pill">処方未選択</span></div><div class="empty"><img src="./pictokun.png" alt=""><h3>まずは処方内容を確認しましょう</h3><p class="muted">テスト処方なら、散剤A・20.00 gの監査を体験できます。</p></div></section>`
+     : `<section class="card"><div class="panel-heading"><h2>本日の監査</h2><span class="pill">処方未選択</span></div><div class="empty"><img src="./pictokun.png" alt=""><h3>まずは処方内容を確認しましょう</h3><p class="muted">実物の処方箋をQR・写真・手入力から取り込んでください。</p></div></section>`
  }</div>
  <aside class="stack">${
    s
@@ -153,11 +150,10 @@ function render() {
          })
          .join(
            "",
-         )}</section>${s.demo ? '<div class="notice warn">TESTモード<br>架空薬専用です。実際の調剤には使えません。</div>' : ""}<button class="secondary full" id="finish" ${!complete ? "disabled" : ""}>この処方のデータを終了</button>${s.demo ? '<button class="text-button full" id="end-demo">練習を終了する</button>' : ""}`
+         )}</section><button class="secondary full" id="finish" ${!complete ? "disabled" : ""}>この処方のデータを終了</button>`
      : `<section class="card card-body"><h2>1回の秤量の流れ</h2><p>① 散剤瓶のGS1を読む<br>② 天秤の表示を撮影<br>③ 数字を確認して登録</p><div class="notice">毎回GS1で薬剤を確認します。</div><p class="muted">処方総量の±10%以内で合格。<br>薬剤師の最終監査を補助するシステムです。</p></section>`
- }<section class="card card-body"><h3>データ・設定</h3><button id="master" class="full" ${s ? "disabled" : ""}>医薬品マスター ${store.master.length}件</button><button id="archive" class="text-button full">終了した監査 ${store.archived.length}件</button><button id="sounds" class="text-button full">通知音を確認する</button><p class="muted">保存先：このブラウザ<br>外部への自動送信はありません。</p></section></aside></div><footer><span>ピクト君 散剤監査 v0.2.0</span><span id="offline">${offline}</span><span>最終監査は薬剤師が行ってください。</span></footer>${import.meta.env.DEV && new URLSearchParams(location.search).has("debug") ? `<details><summary>開発用デバッグ</summary><pre>${esc(JSON.stringify({ drug: d, permit, state, session: s }, null, 2))}</pre></details>` : ""}</main><dialog id="dialog" aria-labelledby="dialog-title"></dialog><dialog id="alarm" class="alarm-dialog" aria-labelledby="alarm-title"></dialog>`;
+ }<section class="card card-body"><h3>データ・設定</h3><button id="master" class="full" ${s ? "disabled" : ""}>医薬品マスター ${store.master.length}件</button><button id="archive" class="text-button full">終了した監査 ${store.archived.length}件</button><button id="sounds" class="text-button full">通知音を確認する</button><p class="muted">保存先：このブラウザ<br>外部への自動送信はありません。</p></section></aside></div><footer><span>ピクト君 散剤監査 v0.2.1</span><span id="offline">${offline}</span><span>最終監査は薬剤師が行ってください。</span><a href="https://github.com/kaeru7787-hash/powder-audit" target="_blank" rel="noopener noreferrer">ソースコード（GitHub） ↗</a></footer>${import.meta.env.DEV && new URLSearchParams(location.search).has("debug") ? `<details><summary>開発用デバッグ</summary><pre>${esc(JSON.stringify({ drug: d, permit, state, session: s }, null, 2))}</pre></details>` : ""}</main><dialog id="dialog" aria-labelledby="dialog-title"></dialog><dialog id="alarm" class="alarm-dialog" aria-labelledby="alarm-title"></dialog>`;
   bind("guide", guide);
-  bind("demo", startDemo);
   bind("import", prescriptionInput);
   bind("master", masterInput);
   bind("archive", archives);
@@ -171,7 +167,6 @@ function render() {
   });
   bind("all-history", () => logDialog(s!));
   bind("finish", finishDialog);
-  bind("end-demo", endDemo);
   document.querySelectorAll<HTMLButtonElement>("[data-drug]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -219,18 +214,10 @@ function guide() {
     `<p>1. 処方を取り込み、薬剤・規格・総量を確認します。</p><p>2. 対象薬を選び、瓶のGS1を読みます。薬剤が一致したときだけ次に進めます。</p><p>3. 天秤の表示を枠に入れて撮影。数字と単位gを目視確認して登録します。手入力も使えます。</p><p>4. 次の秤量もGS1から。重量を累積し、処方総量の±10%以内で合格です。</p><div class="notice warn">処方箋QR（JAHIS）、電子処方箋控えの処方情報、紙処方箋OCR、JSON、手入力に対応します。引換番号だけのQRからは処方を取得しません。読取結果は原本と確認してから監査を開始します。</div><p class="muted">カメラはHTTPSで使用できます。音量・消音設定は端末側で確認してください。振動非対応の端末では画面と音で警告します。</p>`,
   );
 }
-async function startDemo() {
-  const [m, p] = await Promise.all([
-    fetch("./data/demo-master.json").then((r) => r.json()),
-    fetch("./data/demo-prescription.json").then((r) => r.json()),
-  ]);
-  demoMaster = validateMaster(m, true);
-  review(newSession(p, true));
-}
 function review(candidate: Session) {
   dialog(
     "処方内容を確認",
-    `<div class="notice ${candidate.demo ? "warn" : ""}">${candidate.demo ? "TEST・架空薬のテスト処方です。" : "原本と薬剤・規格・数量を照合してください。"}</div>${candidate.drugs.map((d) => `<div class="history-row"><h3>Rp.${esc(d.rpNumber)} ${esc(d.drugName)}</h3><p>${esc(d.ingredient)} / ${esc(d.strength)} / ${esc(d.dosageForm)}${!isPowder(d.dosageForm) ? "（監査対象外）" : ""}</p><div class="muted">${d.quantityPerDay ? `1日量 ${fmt(d.quantityPerDay)} g　` : ""}${d.days ? `${d.days}日分` : ""}</div><div class="target-number">総量 ${fmt(d.expectedTotal)} g</div><span class="muted">製剤量 / ${d.prescriptionType === "generic" ? "一般名" : "商品名"}処方</span><div class="code">${esc(d.drugCode || d.receiptCode || d.genericCode)}</div></div>`).join("")}<label class="check"><input id="rx-confirm" type="checkbox">薬剤・規格・剤形・数量の意味・製剤総量を確認しました</label><button id="start-audit" class="primary full" disabled>この内容で監査開始</button>`,
+    `<div class="notice">原本と薬剤・規格・数量を照合してください。</div>${candidate.drugs.map((d) => `<div class="history-row"><h3>Rp.${esc(d.rpNumber)} ${esc(d.drugName)}</h3><p>${esc(d.ingredient)} / ${esc(d.strength)} / ${esc(d.dosageForm)}${!isPowder(d.dosageForm) ? "（監査対象外）" : ""}</p><div class="muted">${d.quantityPerDay ? `1日量 ${fmt(d.quantityPerDay)} g　` : ""}${d.days ? `${d.days}日分` : ""}</div><div class="target-number">総量 ${fmt(d.expectedTotal)} g</div><span class="muted">製剤量 / ${d.prescriptionType === "generic" ? "一般名" : "商品名"}処方</span><div class="code">${esc(d.drugCode || d.receiptCode || d.genericCode)}</div></div>`).join("")}<label class="check"><input id="rx-confirm" type="checkbox">薬剤・規格・剤形・数量の意味・製剤総量を確認しました</label><button id="start-audit" class="primary full" disabled>この内容で監査開始</button>`,
   );
   $("#rx-confirm").onchange = () => {
     $<HTMLButtonElement>("#start-audit").disabled =
@@ -282,7 +269,7 @@ function masterInput() {
 function prescriptionInput() {
   dialog(
     "処方を取り込む",
-    `<div class="actions"><button id="rx-qr" class="primary">処方箋・控えのQR</button><button id="rx-paper" class="secondary">紙処方箋OCR</button></div><button id="rx-demo" class="text-button full">TEST用JAHISデータで読取確認を試す</button><div class="divider"></div><div class="tabs"><button id="json-mode" aria-pressed="true">JSON読込</button><button id="manual-mode" aria-pressed="false">処方を手入力</button></div><div id="rx-input"></div>`,
+    `<div class="actions"><button id="rx-qr" class="primary">処方箋・控えのQR</button><button id="rx-paper" class="secondary">紙処方箋OCR</button></div><div class="divider"></div><div class="tabs"><button id="json-mode" aria-pressed="true">JSON読込</button><button id="manual-mode" aria-pressed="false">処方を手入力</button></div><div id="rx-input"></div>`,
   );
   bind("json-mode", jsonInput);
   bind("manual-mode", manualPrescription);
@@ -300,17 +287,6 @@ function prescriptionInput() {
   });
   bind("rx-qr", () => openQR(context()));
   bind("rx-paper", () => openPaper(context()));
-  bind("rx-demo", async () => {
-    const [m, text] = await Promise.all([
-      fetch("./data/demo-master.json").then((r) => r.json()),
-      fetch("./data/demo-jahis.txt").then((r) => r.text()),
-    ]);
-    demoMaster = validateMaster(m, true);
-    reviewDrafts(
-      { ...context(), master: () => demoMaster, demo: true },
-      parseJahis(text, "test-jahis"),
-    );
-  });
   jsonInput();
 }
 function jsonInput() {
@@ -419,7 +395,7 @@ function scanDialog() {
   unlockAudio();
   dialog(
     "散剤瓶のGS1を読む",
-    `<p>処方：<strong>${esc(drug()!.drugName)}</strong><br>瓶を1本だけ枠に入れてください。</p><div class="camera-wrap"><video id="video" playsinline muted></video><div class="roi barcode"></div><div class="camera-caption" id="camera-status">カメラを起動すると読み取りを開始します</div></div><button id="start-camera" class="primary full" style="margin-top:14px">カメラでGS1を読む</button><label class="field">GS1の写真を選択<input id="barcode-file" type="file" accept="image/*"></label><details ${session().demo ? "open" : ""}><summary>${session().demo ? "TESTコードで動作を確認" : "GTINを手入力・スキャナー入力"}</summary>${session().demo ? '<div class="notice warn">テスト散剤A：TEST000001<br>薬剤違い：TEST000002<br>規格違い：TEST000003</div>' : ""}<label class="field">GS1 / 14桁GTIN<input id="gs1-text" autocomplete="off" placeholder="${session().demo ? "TEST000001" : "(01)…"}"></label><button id="check-gs1" class="secondary full">このコードを照合</button></details>`,
+    `<p>処方：<strong>${esc(drug()!.drugName)}</strong><br>瓶を1本だけ枠に入れてください。</p><div class="camera-wrap barcode-camera"><video id="video" playsinline muted></video><div class="roi barcode"></div><div class="camera-caption" id="camera-status">カメラを起動すると読み取りを開始します</div></div><button id="start-camera" class="primary full" style="margin-top:14px">カメラでGS1を読む</button><label class="field">GS1の写真を選択<input id="barcode-file" type="file" accept="image/*"></label><details><summary>GTINを手入力・スキャナー入力</summary><label class="field">GS1 / 14桁GTIN<input id="gs1-text" autocomplete="off" placeholder="(01)…"></label><button id="check-gs1" class="secondary full">このコードを照合</button></details>`,
   );
   bind("start-camera", async () => {
     const epoch = dialogEpoch;
@@ -757,25 +733,6 @@ function finishDialog() {
     sound("ok");
   });
 }
-function endDemo() {
-  dialog(
-    "練習を終了しますか？",
-    '<p>このTEST監査を履歴に残して、最初の画面へ戻ります。</p><button id="confirm-demo-end" class="primary full">練習を終了</button>',
-  );
-  bind("confirm-demo-end", async () => {
-    await mutate((next) => {
-      if (!next.current?.demo) throw new Error("TEST専用操作です。");
-      event(next.current, "DEMO_ENDED");
-      next.current.endedAt = new Date().toISOString();
-      next.archived.push(next.current);
-      next.current = null;
-    });
-    permit = null;
-    closeDialog();
-    notice = "";
-    render();
-  });
-}
 function sounds() {
   dialog(
     "通知音を確認する",
@@ -803,13 +760,6 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", () => camera?.stop());
 render();
-if (store.current?.demo)
-  fetch("./data/demo-master.json")
-    .then((r) => r.json())
-    .then((m) => {
-      demoMaster = validateMaster(m, true);
-    })
-    .catch(message);
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   navigator.serviceWorker
     .register("./sw.js")

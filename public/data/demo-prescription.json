@@ -1,3 +1,0 @@
-[
-  {"rpNumber":"1","sourceType":"test","prescriptionType":"brand","drugCode":"TEST-YJ-001","receiptCode":"TEST-R-001","genericCode":"TEST-GEN-A","drugName":"テスト散剤A","genericName":"テスト一般名A","ingredient":"テスト成分A","strength":"10%","dosageForm":"散剤","quantityPerDay":2,"days":10,"expectedTotal":20,"unit":"g","quantityBasis":"product","usage":"テスト処方"}
-]

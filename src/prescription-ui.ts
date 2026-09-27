@@ -19,7 +19,6 @@ import {
   type Session,
 } from "./domain";
 interface Context {
-  demo?: boolean;
   dialog: (title: string, body: string) => number;
   bind: (id: string, fn: () => unknown) => void;
   epoch: () => number;
@@ -258,7 +257,7 @@ export function reviewDrafts(ctx: Context, rows: DraftDrug[]) {
           : {}),
       });
     });
-    const candidate = newSession(drugs, ctx.demo ?? false);
+    const candidate = newSession(drugs, false);
     event(candidate, "SOURCE_REVIEWED", {
       source: rows[0]?.sourceType,
       readCount: rows.length,

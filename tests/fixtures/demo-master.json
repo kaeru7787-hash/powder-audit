@@ -1,0 +1,54 @@
+[
+  {
+    "gtin": "TEST000001",
+    "yjCode": "TEST-YJ-001",
+    "receiptCode": "TEST-R-001",
+    "genericCode": "TEST-GEN-A",
+    "productName": "テスト散剤A",
+    "genericName": "テスト一般名A",
+    "ingredient": "テスト成分A",
+    "strength": "10%",
+    "dosageForm": "散剤",
+    "manufacturer": "テスト製薬",
+    "salesStatus": "TEST"
+  },
+  {
+    "gtin": "TEST000002",
+    "yjCode": "TEST-YJ-002",
+    "receiptCode": "TEST-R-002",
+    "genericCode": "TEST-GEN-B",
+    "productName": "テスト散剤B",
+    "genericName": "テスト一般名B",
+    "ingredient": "テスト成分B",
+    "strength": "10%",
+    "dosageForm": "散剤",
+    "manufacturer": "テスト製薬",
+    "salesStatus": "TEST"
+  },
+  {
+    "gtin": "TEST000003",
+    "yjCode": "TEST-YJ-003",
+    "receiptCode": "TEST-R-003",
+    "genericCode": "TEST-GEN-A20",
+    "productName": "テスト散剤A 20%",
+    "genericName": "テスト一般名A 20%",
+    "ingredient": "テスト成分A",
+    "strength": "20%",
+    "dosageForm": "散剤",
+    "manufacturer": "テスト製薬",
+    "salesStatus": "TEST"
+  },
+  {
+    "gtin": "TEST000004",
+    "yjCode": "TEST-YJ-004",
+    "receiptCode": "TEST-R-004",
+    "genericCode": "TEST-GEN-A",
+    "productName": "テスト散剤A（別商品）",
+    "genericName": "テスト一般名A",
+    "ingredient": "テスト成分A",
+    "strength": "10%",
+    "dosageForm": "散剤",
+    "manufacturer": "別のテスト製薬",
+    "salesStatus": "TEST"
+  }
+]

@@ -10,9 +10,13 @@ for (const dir of ["src", "tests"]) {
     if (
       !name.endsWith(".ts") ||
       (dir === "src" &&
-        !["domain.ts", "storage.ts", "prescription.ts", "paper.ts"].includes(
-          name,
-        ))
+        ![
+          "domain.ts",
+          "storage.ts",
+          "prescription.ts",
+          "paper.ts",
+          "camera-geometry.ts",
+        ].includes(name))
     )
       continue;
     const source = await readFile(new URL(dir + "/" + name, root), "utf8");
@@ -33,7 +37,7 @@ for (const dir of ["src", "tests"]) {
     );
   }
 }
-await cp(new URL("public/data", root), new URL("public/data", out), {
+await cp(new URL("tests/fixtures", root), new URL("tests/fixtures", out), {
   recursive: true,
 });
 const result = spawnSync(

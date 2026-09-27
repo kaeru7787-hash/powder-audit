@@ -1,4 +1,5 @@
 import { readBarcodes, prepareZXingModule } from "zxing-wasm/reader";
+import { frameCrop } from "./camera-geometry";
 const asset = (path: string) =>
   new URL(`${import.meta.env.BASE_URL}vendor/${path}`, document.baseURI).href;
 prepareZXingModule({
@@ -40,33 +41,31 @@ export class Camera {
     this.stream = null;
     this.video.srcObject = null;
   }
-  capture(roi = false): HTMLCanvasElement {
+  capture(roi: boolean | "barcode" = false): HTMLCanvasElement {
     const w = this.video.videoWidth,
       h = this.video.videoHeight;
     if (!w || !h || this.stopped)
       throw new Error("カメラの準備ができていません。");
     const canvas = document.createElement("canvas");
-    // The overlay is relative to the displayed video frame, including contain letterboxing.
+    // Barcode uses cover; the scale OCR and prescription views keep contain.
     if (roi) {
-      const bw = this.video.clientWidth,
-        bh = this.video.clientHeight,
-        scale = Math.min(bw / w, bh / h);
-      const ox = (bw - w * scale) / 2,
-        oy = (bh - h * scale) / 2;
-      const x = Math.max(0, (bw * 0.1 - ox) / scale),
-        y = Math.max(0, (bh * 0.375 - oy) / scale);
-      const ex = Math.min(w, (bw * 0.9 - ox) / scale),
-        ey = Math.min(h, (bh * 0.625 - oy) / scale);
-      canvas.width = Math.max(1, Math.round(ex - x));
-      canvas.height = Math.max(1, Math.round(ey - y));
+      const { x, y, width, height } = frameCrop(
+        w,
+        h,
+        this.video.clientWidth,
+        this.video.clientHeight,
+        roi === "barcode",
+      );
+      canvas.width = Math.max(1, Math.round(width));
+      canvas.height = Math.max(1, Math.round(height));
       canvas
         .getContext("2d")!
         .drawImage(
           this.video,
           x,
           y,
-          ex - x,
-          ey - y,
+          width,
+          height,
           0,
           0,
           canvas.width,
@@ -86,7 +85,7 @@ export class Camera {
     const generation = this.generation;
     while (!this.stopped && generation === this.generation) {
       try {
-        const canvas = this.capture();
+        const canvas = this.capture("barcode");
         const results = await decode(canvas);
         if (this.stopped || generation !== this.generation) return;
         if (results.length === 1) {

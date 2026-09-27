@@ -10,13 +10,13 @@ import {
 import { homography, project } from "../src/paper";
 import { validateMaster } from "../src/domain";
 const example = readFileSync(
-  new URL("../public/data/demo-jahis.txt", import.meta.url),
+  new URL("./fixtures/demo-jahis.txt", import.meta.url),
   "utf8",
 );
 const master = validateMaster(
   JSON.parse(
     readFileSync(
-      new URL("../public/data/demo-master.json", import.meta.url),
+      new URL("./fixtures/demo-master.json", import.meta.url),
       "utf8",
     ),
   ),

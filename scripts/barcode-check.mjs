@@ -43,7 +43,7 @@ for (const format of [
   console.log(format, decoded[0].text);
   if (format === "QRCode")
     await writeFile(
-      new URL("../public/data/TEST000001.png", import.meta.url),
+      new URL("../tests/fixtures/TEST000001.png", import.meta.url),
       Buffer.from(await result.image.arrayBuffer()),
     );
 }

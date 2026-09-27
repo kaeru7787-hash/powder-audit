@@ -22,7 +22,7 @@ import {
 const master = validateMaster(
   JSON.parse(
     readFileSync(
-      new URL("../public/data/demo-master.json", import.meta.url),
+      new URL("./fixtures/demo-master.json", import.meta.url),
       "utf8",
     ),
   ),
@@ -30,7 +30,7 @@ const master = validateMaster(
 );
 const input = JSON.parse(
   readFileSync(
-    new URL("../public/data/demo-prescription.json", import.meta.url),
+    new URL("./fixtures/demo-prescription.json", import.meta.url),
     "utf8",
   ),
 );
