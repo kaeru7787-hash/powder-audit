@@ -1,5 +1,9 @@
 # ピクト君 散剤監査 v0.2.0
 
+**[散剤監査アプリを開く](https://kaeru7787-hash.github.io/powder-audit/)**
+
+[ソースコード](https://github.com/kaeru7787-hash/powder-audit) · [公開処理の実行結果](https://github.com/kaeru7787-hash/powder-audit/actions) · [検証記録](QA.md)
+
 薬局での散剤調剤を補助する、端末内処理のWebアプリです。処方、瓶のGS1、電子天秤の重量を突合します。薬剤師の最終監査を代替しません。
 
 ## 今回の範囲
@@ -155,7 +159,7 @@ localStorageに薬剤、処方、秤量、判定、警告、訂正履歴を保�
 
 Viteのbaseは相対パスなので、`/powder-audit/`などのサブパスにも配置できます。ビルド済みファイルは `dist/`。ソース、テスト、患者データを公開ディレクトリへ混在させず、公開するのはdistの静的資材だけにします。
 
-この納品時点ではGitHubへのpushと本番公開は行っていません。
+2026-09-27にGitHubへのソース登録とGitHub Pagesへの公開を実施しました。GitHub Actionsでテスト48件・バーコード検証・本番ビルドが成功しています。公開は実薬・実機での受入試験完了を意味しません。
 
 ## 構成・検証
 
